@@ -35,39 +35,39 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
-  
+
   // Trust proxy for Railway/production deployments
   if (process.env.NODE_ENV === "production") {
     app.set("trust proxy", 1);
   }
-  
+
   // Configure session middleware
   app.use(session({
     secret: process.env.JWT_SECRET || "chore-tracker-secret",
     resave: false,
     saveUninitialized: false,
-    cookie: { 
+    cookie: {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
     }
   }));
-  
+
   // Initialize Passport
   configurePassport();
   app.use(passport.initialize());
   app.use(passport.session());
-  
+
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // Google OAuth routes
   app.use('/auth', authRoutes);
-  
+
   // OAuth callback under /api/oauth/callback (legacy)
   registerOAuthRoutes(app);
-  
+
   // Register custom API routes
   registerRoutes(app);
   // tRPC API
@@ -86,14 +86,19 @@ async function startServer() {
   }
 
   const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
+
+  // In production (Railway), always use the assigned PORT directly.
+  // Only use findAvailablePort in development.
+  const port = process.env.NODE_ENV === "production"
+    ? preferredPort
+    : await findAvailablePort(preferredPort);
 
   if (port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
-  server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+  server.listen(port, "0.0.0.0", () => {
+    console.log(`Server running on http://0.0.0.0:${port}/`);
   });
 }
 
