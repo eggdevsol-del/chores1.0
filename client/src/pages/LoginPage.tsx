@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { APP_LOGO, APP_TITLE } from "@/const";
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -47,25 +46,26 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background Image */}
+      <img
+        src="/mahi-bg.png"
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ transform: 'translateY(-4px)' }}
+      />
 
       {/* Login Card */}
-      <div className="relative w-full max-w-md">
-        <div className="glass-card rounded-3xl p-8 shadow-2xl">
+      <div className="relative w-full max-w-md z-10">
+        <div className="rounded-3xl p-8 shadow-2xl" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
           {/* Logo */}
           <div className="flex flex-col items-center mb-6">
             <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mb-4 shadow-lg">
-              {APP_LOGO ? (
-                <img src={APP_LOGO} alt={APP_TITLE} className="w-12 h-12 object-contain" />
-              ) : (
-                <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              )}
+              <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">{APP_TITLE}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-1">MAHI KIDS</h1>
             <p className="text-gray-600 text-center text-sm">Teach kids responsibility through earning and managing pocket money</p>
           </div>
 
