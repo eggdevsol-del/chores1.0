@@ -100,6 +100,23 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Initialize prepopulated chores for the current user (for existing users who don't have them)
+  app.post("/api/chores/init", async (req, res) => {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      await initializePrePopulatedChores(userId);
+      const chores = await getChoresByUserId(userId);
+      res.json({ success: true, count: chores.length });
+    } catch (error) {
+      console.error("Error initializing chores:", error);
+      res.status(500).json({ error: "Failed to initialize chores" });
+    }
+  });
+
   // ============ Kids Management Routes ============
 
   app.get("/api/kids", async (req, res) => {

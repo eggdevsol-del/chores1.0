@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import passport from './passport';
 import { getDb } from '../db';
 import { users } from '../../drizzle/schema';
+import { initializePrePopulatedChores } from '../db-helpers';
 
 const router = Router();
 
@@ -46,6 +47,13 @@ router.post('/register', async (req, res) => {
 
     const newUserId = Number((result as any).insertId || (result as any)[0]?.insertId);
     const newUser = await db.select().from(users).where(eq(users.id, newUserId)).limit(1);
+
+    // Seed prepopulated chores for the new user
+    try {
+      await initializePrePopulatedChores(newUserId);
+    } catch (e) {
+      console.warn('Failed to initialize prepopulated chores:', e);
+    }
 
     // Log the user in via session
     req.login(newUser[0], (err) => {

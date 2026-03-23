@@ -34,6 +34,12 @@ export default function ChoreSetupPage() {
   const [assignmentMode, setAssignmentMode] = useState<"all" | "specific">("all");
   const [selectedKids, setSelectedKids] = useState<Set<number>>(new Set());
   const [filterFrequency, setFilterFrequency] = useState<string>("all");
+  const [showAddChore, setShowAddChore] = useState(false);
+  const [newChoreTitle, setNewChoreTitle] = useState("");
+  const [newChoreDesc, setNewChoreDesc] = useState("");
+  const [newChoreAmount, setNewChoreAmount] = useState("1.00");
+  const [newChoreFreq, setNewChoreFreq] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [newChoreType, setNewChoreType] = useState<"individual" | "first_come">("individual");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -47,6 +53,17 @@ export default function ChoreSetupPage() {
       const response = await fetch("/api/chores");
       if (response.ok) {
         const data = await response.json();
+        if (data.length === 0) {
+          // No chores yet — auto-initialize prepopulated chores
+          const initRes = await fetch("/api/chores/init", { method: "POST" });
+          if (initRes.ok) {
+            const refetch = await fetch("/api/chores");
+            if (refetch.ok) {
+              setChores(await refetch.json());
+              return;
+            }
+          }
+        }
         setChores(data);
       }
     } catch (error) {
@@ -63,6 +80,37 @@ export default function ChoreSetupPage() {
       }
     } catch (error) {
       console.error("Failed to fetch kids:", error);
+    }
+  };
+
+  const handleAddChore = async () => {
+    if (!newChoreTitle.trim()) {
+      toast({ title: "Title required", variant: "destructive" });
+      return;
+    }
+    try {
+      const response = await fetch("/api/chores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newChoreTitle,
+          description: newChoreDesc || newChoreTitle,
+          paymentAmount: parseFloat(newChoreAmount),
+          frequency: newChoreFreq,
+          choreType: newChoreType,
+          difficulty: "medium",
+        }),
+      });
+      if (response.ok) {
+        toast({ title: "Chore created!" });
+        setNewChoreTitle("");
+        setNewChoreDesc("");
+        setNewChoreAmount("1.00");
+        setShowAddChore(false);
+        fetchChores();
+      }
+    } catch (error) {
+      toast({ title: "Failed to create chore", variant: "destructive" });
     }
   };
 
@@ -153,7 +201,7 @@ export default function ChoreSetupPage() {
 
   const filteredChores = chores.filter((chore) => {
     const matchesSearch = chore.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         chore.description.toLowerCase().includes(searchTerm.toLowerCase());
+      chore.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFrequency = filterFrequency === "all" || chore.frequency === filterFrequency;
     return matchesSearch && matchesFrequency;
   });
@@ -179,6 +227,73 @@ export default function ChoreSetupPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Chore Selection */}
           <div className="lg:col-span-2 space-y-4">
+            {/* Create Custom Chore */}
+            {showAddChore && (
+              <Card className="shadow-lg border-2 border-indigo-200">
+                <CardHeader>
+                  <CardTitle>Create Custom Chore</CardTitle>
+                  <CardDescription>Add your own chore to the list</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-1">
+                    <Label>Title</Label>
+                    <Input
+                      placeholder="e.g. Walk the dog"
+                      value={newChoreTitle}
+                      onChange={(e) => setNewChoreTitle(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Description</Label>
+                    <Input
+                      placeholder="What needs to be done?"
+                      value={newChoreDesc}
+                      onChange={(e) => setNewChoreDesc(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label>Amount ($)</Label>
+                      <Input
+                        type="number"
+                        step="0.25"
+                        min="0.25"
+                        value={newChoreAmount}
+                        onChange={(e) => setNewChoreAmount(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Frequency</Label>
+                      <Select value={newChoreFreq} onValueChange={(v: any) => setNewChoreFreq(v)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="daily">Daily</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Type</Label>
+                      <Select value={newChoreType} onValueChange={(v: any) => setNewChoreType(v)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="individual">Individual</SelectItem>
+                          <SelectItem value="first_come">First Come</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button onClick={handleAddChore} className="flex-1">
+                      <Plus className="w-4 h-4 mr-2" /> Add Chore
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowAddChore(false)}>Cancel</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card className="shadow-lg">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -189,6 +304,13 @@ export default function ChoreSetupPage() {
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAddChore(!showAddChore)}
+                    >
+                      <Plus className="w-4 h-4 mr-1" /> Custom
+                    </Button>
                     <Select value={filterFrequency} onValueChange={setFilterFrequency}>
                       <SelectTrigger className="w-32">
                         <SelectValue />
@@ -225,11 +347,10 @@ export default function ChoreSetupPage() {
                       {groupedChores[freq].map((chore) => (
                         <div
                           key={chore.id}
-                          className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                            selectedChores.has(chore.id)
-                              ? "border-indigo-500 bg-indigo-50"
-                              : "border-gray-200 hover:border-indigo-300"
-                          }`}
+                          className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedChores.has(chore.id)
+                            ? "border-indigo-500 bg-indigo-50"
+                            : "border-gray-200 hover:border-indigo-300"
+                            }`}
                           onClick={() => toggleChoreSelection(chore.id)}
                         >
                           <div className="flex items-start justify-between">
@@ -272,11 +393,10 @@ export default function ChoreSetupPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div
-                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      assignmentMode === "all"
-                        ? "border-indigo-500 bg-indigo-50"
-                        : "border-gray-200 hover:border-indigo-300"
-                    }`}
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${assignmentMode === "all"
+                      ? "border-indigo-500 bg-indigo-50"
+                      : "border-gray-200 hover:border-indigo-300"
+                      }`}
                     onClick={() => setAssignmentMode("all")}
                   >
                     <div className="flex items-center gap-2">
@@ -291,11 +411,10 @@ export default function ChoreSetupPage() {
                   </div>
 
                   <div
-                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      assignmentMode === "specific"
-                        ? "border-indigo-500 bg-indigo-50"
-                        : "border-gray-200 hover:border-indigo-300"
-                    }`}
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${assignmentMode === "specific"
+                      ? "border-indigo-500 bg-indigo-50"
+                      : "border-gray-200 hover:border-indigo-300"
+                      }`}
                     onClick={() => setAssignmentMode("specific")}
                   >
                     <div className="flex items-center gap-2">
@@ -316,11 +435,10 @@ export default function ChoreSetupPage() {
                     {kids.map((kid) => (
                       <div
                         key={kid.id}
-                        className={`p-3 border rounded-lg cursor-pointer transition-all ${
-                          selectedKids.has(kid.id)
-                            ? "border-indigo-500 bg-indigo-50"
-                            : "border-gray-200 hover:border-indigo-300"
-                        }`}
+                        className={`p-3 border rounded-lg cursor-pointer transition-all ${selectedKids.has(kid.id)
+                          ? "border-indigo-500 bg-indigo-50"
+                          : "border-gray-200 hover:border-indigo-300"
+                          }`}
                         onClick={() => toggleKidSelection(kid.id)}
                       >
                         <div className="flex items-center gap-3">
