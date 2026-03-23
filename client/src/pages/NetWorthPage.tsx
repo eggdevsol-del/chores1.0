@@ -43,11 +43,11 @@ export default function NetWorthPage() {
       }
 
       // Fetch completed tasks
-      const tasksResponse = await fetch(`/api/kids/${kidId}/tasks/completed`);
+      const tasksResponse = await fetch(`/api/kids/${kidId}/completed-tasks`);
       if (tasksResponse.ok) {
         const completedTasks = await tasksResponse.json();
         setTasks(completedTasks);
-        
+
         // Calculate total earnings
         const total = completedTasks.reduce((sum: number, task: Task) => sum + task.amountEarned, 0);
         setTotalEarnings(total);
